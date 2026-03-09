@@ -277,7 +277,9 @@ you can merge manually). To overwrite it (dangerous):
 prodkit overlay --force --force-constitution
 ```
 
-To also apply the optional agent guidance docs:
+To also apply the full command set — including all ten `/prodkit.*` AI-native knowledge-base
+commands (`/prodkit.company`, `/prodkit.product`, `/prodkit.agents`, etc.) alongside the
+existing `/speckit.*` commands:
 
 ```bash
 prodkit overlay --force --with-claude-commands
