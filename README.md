@@ -12,6 +12,7 @@ idea → product clarity → execution without losing context.
 
 - What you get
 - Add Prod‑Kit on top of Spec‑Kit (overlay)
+- Build the AI-native knowledge base
 - Canonical product artifacts (what to add to your repo)
 - Workflow (what changes vs what stays the same)
 - Governance
@@ -67,6 +68,70 @@ Copy these files from this `prod-kit` repo into your Spec‑Kit project (same pa
 
 After the overlay, your existing Spec‑Kit commands remain the same (`/speckit.*`), but the templates
 and gates will now require product context and traceability.
+
+## Build the AI-native knowledge base
+
+Once the overlay is applied, Prod‑Kit ships ten `/prodkit.*` commands. Each one scaffolds a
+structured, agent-optimized Markdown file in your repo — with YAML frontmatter, a mandatory
+`## Agent Summary` section (≤150 words for fast agent loading), and all required domain sections.
+All commands are **idempotent**: safe to re-run; existing content is never overwritten.
+
+### Step 1 — Scaffold the knowledge base
+
+```text
+/prodkit.company       →  .specify/memory/company.md
+/prodkit.marketing     →  .specify/memory/marketing.md
+/prodkit.product       →  .specify/memory/product.md
+/prodkit.security      →  .specify/memory/security.md
+/prodkit.architecture  →  .specify/memory/architecture.md
+/prodkit.engineering   →  .specify/memory/engineering.md
+/prodkit.ai-native     →  .specify/memory/ai-native.md
+/prodkit.agents        →  .specify/memory/agents.md  (+ vendor auto-loaders, see Step 2)
+/prodkit.roadmap       →  .specify/memory/roadmap/roadmap.md
+```
+
+Fill in your team's specifics in each file. At minimum, complete the `## Agent Summary`
+section so agents can route intelligently.
+
+### Step 2 — Configure vendor-native auto-loading
+
+Running `/prodkit.agents` also generates three files at your **repo root** that each vendor's
+agent reads automatically at session start — zero manual context injection required per session:
+
+| File | Vendor |
+|------|--------|
+| `CLAUDE.md` | Claude Code |
+| `.cursorrules` | Cursor |
+| `GEMINI.md` | Gemini |
+
+Each file always loads `agents.md` (the routing table) and instructs the agent to load only
+the knowledge-base files relevant to the current task type (`coding`, `architecture-review`,
+`product-planning`, `security-audit`).
+
+### Step 3 — Generate architecture artifacts
+
+```text
+/prodkit.dataflowdiagram   →  .specify/memory/architecture/dataflow-[name].md
+```
+
+Describe your services and data flows; the command generates a machine-readable artifact with
+a `## Services` section and `## Data Flows` table that agents use for architecture review.
+
+### Task routing (agents load only what they need)
+
+`agents.md` contains a routing table so agents never load the full knowledge base when only a
+subset is needed. The table ships pre-configured:
+
+| Task type | Files loaded |
+|---|---|
+| `coding` | product, architecture, engineering, ai-native, agents |
+| `architecture-review` | product, security, architecture, engineering, ai-native, agents |
+| `product-planning` | company, marketing, product, agents |
+| `security-audit` | product, security, architecture, engineering, agents |
+
+See the full quickstart: [`specs/002-ai-native-framework/quickstart.md`](specs/002-ai-native-framework/quickstart.md)
+
+---
 
 ## Canonical product artifacts (what to add to your repo)
 
