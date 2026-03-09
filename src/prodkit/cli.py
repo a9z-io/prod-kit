@@ -17,7 +17,22 @@ class CopyResult:
 
 def _overlay_root() -> Path:
     # Package data lives at src/prodkit/overlay/ in this repo and is included in builds.
+    # Hidden directories (.specify, .claude) are stored without leading dots inside the
+    # package (as specify/ and claude/) so setuptools doesn't silently exclude them.
+    # The CLI maps them back to dot-prefixed names in the target repo.
     return Path(__file__).resolve().parent / "overlay"
+
+
+def _pkg_src(rel_dst: Path) -> Path:
+    """Convert a target-repo relative path (e.g. .specify/...) to its package-internal path.
+
+    Hidden top-level dirs (.specify, .claude) are stored without the leading dot inside the
+    package so setuptools doesn't silently exclude them during packaging.
+    """
+    parts = list(rel_dst.parts)
+    # Strip the leading dot from the first component: .specify → specify, .claude → claude.
+    parts[0] = parts[0].lstrip(".")
+    return Path(*parts)
 
 
 def _copy_file(src: Path, dst: Path, *, force: bool) -> CopyResult:
@@ -31,6 +46,7 @@ def _copy_file(src: Path, dst: Path, *, force: bool) -> CopyResult:
     return CopyResult(src=src, dst=dst, action="copied")
 
 
+# Destination paths in the target repo (dot-prefixed).
 def _rel_paths_required() -> list[Path]:
     return [
         Path(".specify/memory/constitution.md"),
@@ -40,10 +56,9 @@ def _rel_paths_required() -> list[Path]:
     ]
 
 
-def _rel_paths_optional() -> list[Path]:
-    # Agent guidance docs: optional overlay.
-    # We include the whole .claude/commands set, but users may not want it.
-    return [Path(".claude/commands")]
+def _optional_dir_dst() -> Path:
+    """Destination dir in the target repo for optional Claude command docs."""
+    return Path(".claude/commands")
 
 
 def _copy_tree(src_dir: Path, dst_dir: Path, *, force: bool) -> list[CopyResult]:
@@ -92,19 +107,20 @@ def cmd_overlay(argv: list[str]) -> int:
         print(f"ERROR: target path does not exist: {target}", file=sys.stderr)
         return 2
 
-    required = _rel_paths_required()
     results: list[CopyResult] = []
 
-    for rel in required:
-        src = overlay / rel
+    for rel_dst in _rel_paths_required():
+        # Source inside the package uses no leading dot.
+        rel_src = _pkg_src(rel_dst)
+        src = overlay / rel_src
         if not src.exists():
-            print(f"ERROR: missing overlay file in package: {rel}", file=sys.stderr)
+            print(f"ERROR: missing overlay file in package: {rel_src}", file=sys.stderr)
             return 2
 
-        dst = target / rel
+        dst = target / rel_dst
 
-        # Constitution is special: default behavior is "copy if missing; otherwise skip for manual merge".
-        if rel.as_posix() == ".specify/memory/constitution.md":
+        # Constitution is special: skip by default so users can merge manually.
+        if rel_dst.as_posix() == ".specify/memory/constitution.md":
             force_constitution = bool(args.force_constitution)
             if dst.exists() and not force_constitution:
                 results.append(
@@ -122,12 +138,13 @@ def cmd_overlay(argv: list[str]) -> int:
         results.append(_copy_file(src, dst, force=bool(args.force)))
 
     if args.with_claude_commands:
-        rel_dir = _rel_paths_optional()[0]
-        src_dir = overlay / rel_dir
+        rel_dst_dir = _optional_dir_dst()
+        rel_src_dir = _pkg_src(rel_dst_dir)
+        src_dir = overlay / rel_src_dir
         if not src_dir.exists():
-            print("ERROR: missing overlay directory in package: .claude/commands", file=sys.stderr)
+            print("ERROR: missing overlay directory in package: claude/commands", file=sys.stderr)
             return 2
-        dst_dir = target / rel_dir
+        dst_dir = target / rel_dst_dir
         results.extend(_copy_tree(src_dir, dst_dir, force=bool(args.force)))
 
     copied = sum(1 for r in results if r.action in {"copied", "overwritten"})
@@ -137,7 +154,6 @@ def cmd_overlay(argv: list[str]) -> int:
     print(f"- copied/updated: {copied}")
     print(f"- skipped: {skipped}")
 
-    # Show a short, stable summary (avoid noisy per-file output by default).
     for r in results:
         if r.action == "skipped":
             print(f"SKIP {r.dst.relative_to(target)} ({r.note})")
@@ -167,4 +183,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
