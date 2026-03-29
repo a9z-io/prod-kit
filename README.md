@@ -285,6 +285,19 @@ existing `/speckit.*` commands:
 prodkit overlay --force --with-claude-commands
 ```
 
+To also install the Claude Code skill definitions (`.claude/skills/`) so `/speckit.*` skills are
+available in Claude Code and other tools that consume them:
+
+```bash
+prodkit overlay --force --with-claude-skills
+```
+
+Or install both at once:
+
+```bash
+prodkit overlay --force --with-claude-commands --with-claude-skills
+```
+
 #### Option 2: Copy/merge files manually
 
 Re-apply/merge these overlay files into your Spec‑Kit project (same paths):
@@ -297,6 +310,7 @@ Re-apply/merge these overlay files into your Spec‑Kit project (same paths):
 Optional:
 
 - `.claude/commands/*.md`
+- `.claude/skills/*/SKILL.md`
 
 If you’ve customized templates, upgrade by **merging** (not overwriting) and keep a small diff so
 future upgrades are repeatable.

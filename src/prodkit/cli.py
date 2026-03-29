@@ -56,9 +56,12 @@ def _rel_paths_required() -> list[Path]:
     ]
 
 
-def _optional_dir_dst() -> Path:
-    """Destination dir in the target repo for optional Claude command docs."""
+def _optional_commands_dir_dst() -> Path:
     return Path(".claude/commands")
+
+
+def _optional_skills_dir_dst() -> Path:
+    return Path(".claude/skills")
 
 
 def _copy_tree(src_dir: Path, dst_dir: Path, *, force: bool) -> list[CopyResult]:
@@ -94,6 +97,11 @@ def cmd_overlay(argv: list[str]) -> int:
         "--with-claude-commands",
         action="store_true",
         help="Also overlay `.claude/commands/*` guidance docs.",
+    )
+    p.add_argument(
+        "--with-claude-skills",
+        action="store_true",
+        help="Also overlay `.claude/skills/*` skill definitions for Claude Code.",
     )
     args = p.parse_args(argv)
 
@@ -138,11 +146,21 @@ def cmd_overlay(argv: list[str]) -> int:
         results.append(_copy_file(src, dst, force=bool(args.force)))
 
     if args.with_claude_commands:
-        rel_dst_dir = _optional_dir_dst()
+        rel_dst_dir = _optional_commands_dir_dst()
         rel_src_dir = _pkg_src(rel_dst_dir)
         src_dir = overlay / rel_src_dir
         if not src_dir.exists():
             print("ERROR: missing overlay directory in package: claude/commands", file=sys.stderr)
+            return 2
+        dst_dir = target / rel_dst_dir
+        results.extend(_copy_tree(src_dir, dst_dir, force=bool(args.force)))
+
+    if args.with_claude_skills:
+        rel_dst_dir = _optional_skills_dir_dst()
+        rel_src_dir = _pkg_src(rel_dst_dir)
+        src_dir = overlay / rel_src_dir
+        if not src_dir.exists():
+            print("ERROR: missing overlay directory in package: claude/skills", file=sys.stderr)
             return 2
         dst_dir = target / rel_dst_dir
         results.extend(_copy_tree(src_dir, dst_dir, force=bool(args.force)))
@@ -168,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
             "prodkit: Prod‑Kit overlay tooling\n\n"
             "Commands:\n"
             "  overlay    Apply/upgrade Prod‑Kit overlay files into a Spec‑Kit repo\n\n"
-            "Run `prodkit <command> --help` for details.",
+            "Run `prodkit overlay --help` for all flags, including --with-claude-commands and --with-claude-skills.",
             file=sys.stdout,
         )
         return 0
