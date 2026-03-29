@@ -13,6 +13,8 @@ idea → product clarity → execution without losing context.
 - What you get
 - Add Prod‑Kit on top of Spec‑Kit (overlay)
 - Build the AI-native knowledge base
+- Skills reference
+- Mixing skills: end-to-end workflows
 - Canonical product artifacts (what to add to your repo)
 - Workflow (what changes vs what stays the same)
 - Governance
@@ -130,6 +132,148 @@ subset is needed. The table ships pre-configured:
 | `security-audit` | product, security, architecture, engineering, agents |
 
 See the full quickstart: [`specs/002-ai-native-framework/quickstart.md`](specs/002-ai-native-framework/quickstart.md)
+
+---
+
+## Skills reference
+
+Skills are Claude Code slash commands with full instruction sets. They are deployed into your
+repo via `prodkit overlay --with-claude-skills` and become available as `/skill-name` in Claude Code.
+
+### Spec‑Kit skills (from upstream)
+
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| `speckit-specify` | `/speckit.specify <description>` | Create or update a feature spec from plain-language description |
+| `speckit-clarify` | `/speckit.clarify` | Ask up to 5 targeted clarification questions and encode answers into the spec |
+| `speckit-plan` | `/speckit.plan <tech stack>` | Generate a technical implementation plan from the spec |
+| `speckit-tasks` | `/speckit.tasks` | Break the plan into an ordered, dependency-aware task list |
+| `speckit-implement` | `/speckit.implement` | Execute all tasks in `tasks.md` following TDD where applicable |
+| `speckit-analyze` | `/speckit.analyze` | Cross-artifact consistency check across spec, plan, and tasks |
+| `speckit-checklist` | `/speckit.checklist` | Generate a custom quality checklist for the current feature |
+| `speckit-constitution` | `/speckit.constitution` | Create or update the project constitution |
+| `speckit-taskstoissues` | `/speckit.taskstoissues` | Convert tasks into GitHub issues |
+
+### Prod‑Kit skills
+
+| Skill | Command | What it does |
+|-------|---------|-------------|
+| `prodkit-ghflow` | `/prodkit.ghflow [context]` | Full GitHub workflow: branch → stage → commit → push → PR, with confirmation at every step |
+
+### `/prodkit.ghflow` — GitHub workflow skill
+
+The `ghflow` skill walks through the complete branch-to-PR loop interactively.
+
+**Basic usage — commit and PR what you have:**
+```text
+/prodkit.ghflow
+```
+
+**With a context hint (used to name the branch and commit):**
+```text
+/prodkit.ghflow fix checkout timeout on mobile
+```
+
+**With a ticket reference:**
+```text
+/prodkit.ghflow PROJ-42 add dark mode toggle
+```
+
+**What happens at each step:**
+
+| Step | Action | Requires approval? |
+|------|--------|--------------------|
+| 1 | Inspect `git status`, `git diff`, current branch | No |
+| 2 | Propose branch name (or skip if already on a feature branch) | Yes |
+| 3 | Stage changes (`git add -A` or manually) | Yes |
+| 4 | Propose conventional commit message | Yes |
+| 5 | Commit | Yes |
+| 6 | Push to origin | Yes |
+| 7 | Propose PR title + body, create via `gh pr create` | Yes |
+
+At every approval step you can accept, edit, or cancel — no action is taken without a confirmed response.
+
+**Requirements:** `git` and `gh` CLI (authenticated). If `gh` is missing, the skill completes through push and provides manual PR instructions.
+
+---
+
+## Mixing skills: end-to-end workflows
+
+Skills compose naturally. Here are common patterns that combine `/speckit.*`, `/prodkit.*`, and `/prodkit.ghflow`.
+
+### Pattern 1 — Full feature from idea to PR
+
+The complete spec-driven development loop, ending with a PR:
+
+```text
+# 1. Describe the feature — creates branch + spec.md
+/speckit.specify add a CSV export button to the reports page
+
+# 2. Clarify any ambiguities in the spec
+/speckit.clarify
+
+# 3. Generate a technical plan
+/speckit.plan TypeScript, Next.js, Prisma
+
+# 4. Break the plan into tasks
+/speckit.tasks
+
+# 5. Implement all tasks
+/speckit.implement
+
+# 6. Commit the implementation and open a PR
+/prodkit.ghflow feat/csv-export — ready for review
+```
+
+### Pattern 2 — Quick fix to PR (no spec needed)
+
+For small bugs or chores where a full spec is overkill:
+
+```text
+# Make your code changes, then:
+/prodkit.ghflow fix null pointer in user settings page
+```
+
+The skill inspects the diff, proposes a branch name and commit message, and walks you through to a PR in one command.
+
+### Pattern 3 — Spec + analysis quality gate before shipping
+
+Add a consistency check before committing:
+
+```text
+/speckit.specify redesign the onboarding flow
+/speckit.plan React, Node.js
+/speckit.tasks
+/speckit.analyze          ← catches gaps between spec, plan, and tasks
+/speckit.implement
+/prodkit.ghflow           ← branch + commit + PR
+```
+
+### Pattern 4 — Tasks to GitHub issues + PR
+
+When you want GitHub issues tracking each task alongside a PR:
+
+```text
+/speckit.specify integrate Stripe billing
+/speckit.plan
+/speckit.tasks
+/speckit.taskstoissues    ← creates a GitHub issue per task
+/speckit.implement
+/prodkit.ghflow integrate Stripe billing — closes #12 #13 #14
+```
+
+### Pattern 5 — Scaffold knowledge base then ship
+
+Set up a new repo's AI context and commit it in one session:
+
+```text
+/prodkit.company
+/prodkit.product
+/prodkit.engineering
+/prodkit.architecture
+/prodkit.agents           ← generates CLAUDE.md, .cursorrules, GEMINI.md
+/prodkit.ghflow chore: scaffold prod-kit knowledge base
+```
 
 ---
 
