@@ -10,10 +10,6 @@ description: "Task list template for feature implementation"
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
 
-**KPI Instrumentation (Prod‑Kit)**: If the spec lists impacted KPIs, include tasks to ensure
-those KPIs can be measured (instrumentation + dashboards) unless the plan explicitly records
-a deferral with rationale and a revisit trigger.
-
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
