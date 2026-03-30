@@ -5,6 +5,18 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Product Context *(mandatory)*
+
+<!--
+  Prod‑Kit Gate: This spec MUST be traceable to durable product intent.
+  Link the product constitution and list the success metrics / KPIs this feature is intended to move.
+-->
+
+- **Product Constitution**: [link to `product/constitution.*`]
+- **ICP / User**: [who this is for, in product’s language]
+- **Problem / Value**: [1–2 sentences]
+- **Primary KPIs impacted**: [e.g., Activation, Engagement, Retention, Expansion, Time-to-value]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -114,15 +126,3 @@
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
-## Assumptions
-
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right assumptions based on reasonable defaults
-  chosen when the feature description did not specify certain details.
--->
-
-- [Assumption about target users, e.g., "Users have stable internet connectivity"]
-- [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
-- [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
-- [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
