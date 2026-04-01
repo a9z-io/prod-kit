@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-01
 - Repository files (`.claude/commands/*`, `.claude/skills/*`) and generated diagram artifact files colocated with source outputs (create-diagram-skill)
 - Bash shell scripts and Markdown workflow docs + Existing Speckit scripts in `.specify/scripts/bash/` (`create-new-feature.sh`, `common.sh`, prerequisite/setup scripts) (004-fix-spec-indexing)
 - Local repository file system (`specs/` directory names, generated spec files, branch names) (004-fix-spec-indexing)
+- Markdown documentation updates + README content and existing command usage conventions in repo (004-simplify-readme-install)
+- Repository documentation files (`README.md` and related command references) (004-simplify-readme-install)
 
 - Markdown (command definitions and knowledge-base templates); YAML (frontmatter within Markdown files) + None — plain-text files consumed by Cursor slash-command engine and AI agents (002-ai-native-framework)
 
@@ -28,9 +30,9 @@ tests/
 Markdown (command definitions and knowledge-base templates); YAML (frontmatter within Markdown files): Follow standard conventions
 
 ## Recent Changes
+- 004-simplify-readme-install: Added Markdown documentation updates + README content and existing command usage conventions in repo
 - 004-fix-spec-indexing: Added Bash shell scripts and Markdown workflow docs + Existing Speckit scripts in `.specify/scripts/bash/` (`create-new-feature.sh`, `common.sh`, prerequisite/setup scripts)
 - create-diagram-skill: Added Markdown command/skill specifications + Mermaid text outpu + Existing slash-command workflow in `.claude/commands/`; existing skill system in `.claude/skills/`
-- 003-ghflow-rebase-main: Added Markdown + YAML frontmatter (same as all prod-kit artifacts) + `git` (fetch, rebase, symbolic-ref, rev-list) — already required by the skill
 
 
 <!-- MANUAL ADDITIONS START -->

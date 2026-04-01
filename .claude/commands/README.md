@@ -7,6 +7,6 @@ This overlay is optional; apply it only if you want these docs in your repositor
 ## Command Naming Notes
 
 - Use `/prodkit.dataflow` as the canonical dataflow command.
-- `/prodkit.dataflowdiagram` remains available as a deprecated compatibility alias.
+- `/prodkit.dataflowdiagram` has been removed; use `/prodkit.dataflow`.
 - Use `/prodkit.create diagram` to generate Mermaid diagrams from architecture/dataflow artifacts.
 
