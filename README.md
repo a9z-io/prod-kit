@@ -113,7 +113,7 @@ the knowledge-base files relevant to the current task type (`coding`, `architect
 ### Step 3 — Generate architecture artifacts
 
 ```text
-/prodkit.dataflowdiagram   →  .specify/memory/architecture/dataflow-[name].md
+/prodkit.dataflow   →  .specify/memory/architecture/dataflow-[name].md
 ```
 
 Describe your services and data flows; the command generates a machine-readable artifact with
@@ -383,35 +383,37 @@ Then re-apply the Prod‑Kit overlay file set (next section).
 
 #### Option 1: Apply via `uv` (no manual copying)
 
-One-time (recommended for upgrades):
+Source repository: `https://github.com/a9z-io/prod-kit`
+
+Default path (recommended):
 
 ```bash
-uvx --from git+https://github.com/3leches/prod-kit.git prodkit overlay --force
+uvx --from git+https://github.com/a9z-io/prod-kit.git prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
 Persistent install:
 
 ```bash
-uv tool install prod-kit --from git+https://github.com/3leches/prod-kit.git
-prodkit overlay --force
+uv tool install prod-kit --from git+https://github.com/a9z-io/prod-kit.git
+prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
-If the repo is private (or your environment can’t prompt for credentials) and you see an error like
-`could not read Username for 'https://github.com': terminal prompts disabled`, use SSH instead:
+Fallback: SSH source (use when HTTPS auth prompts are blocked):
 
 ```bash
-uvx --from git+ssh://git@github.com/3leches/prod-kit.git prodkit overlay --force
+uvx --from git+ssh://git@github.com/a9z-io/prod-kit.git prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
 ```bash
-uv tool install prod-kit --from git+ssh://git@github.com/3leches/prod-kit.git
-prodkit overlay --force
+uv tool install prod-kit --from git+ssh://git@github.com/a9z-io/prod-kit.git
+prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
-Alternatively, authenticate HTTPS via a token (avoid putting tokens in shell history):
+Fallback: HTTPS token auth (avoid putting tokens in shell history):
 
 ```bash
-GITHUB_TOKEN=... uv tool install prod-kit --from "git+https://$GITHUB_TOKEN@github.com/3leches/prod-kit.git"
+GITHUB_TOKEN=... uv tool install prod-kit --from "git+https://$GITHUB_TOKEN@github.com/a9z-io/prod-kit.git"
+prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
 By default, `prodkit overlay` **skips** `.specify/memory/constitution.md` if it already exists (so
@@ -421,25 +423,22 @@ you can merge manually). To overwrite it (dangerous):
 prodkit overlay --force --force-constitution
 ```
 
-To also apply the full command set — including all ten `/prodkit.*` AI-native knowledge-base
-commands (`/prodkit.company`, `/prodkit.product`, `/prodkit.agents`, etc.) alongside the
-existing `/speckit.*` commands:
+Default overlay behavior in this README:
+
+```bash
+prodkit overlay --force --with-claude-commands --with-claude-skills
+```
+
+Optional: commands only:
 
 ```bash
 prodkit overlay --force --with-claude-commands
 ```
 
-To also install the Claude Code skill definitions (`.claude/skills/`) so `/speckit.*` skills are
-available in Claude Code and other tools that consume them:
+Optional: skills only:
 
 ```bash
 prodkit overlay --force --with-claude-skills
-```
-
-Or install both at once:
-
-```bash
-prodkit overlay --force --with-claude-commands --with-claude-skills
 ```
 
 #### Option 2: Copy/merge files manually
