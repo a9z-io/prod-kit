@@ -6,6 +6,7 @@ JSON_MODE=false
 SHORT_NAME=""
 BRANCH_NUMBER=""
 USE_TIMESTAMP=false
+MANUAL_NUMBER=false
 ARGS=()
 i=1
 while [ $i -le $# ]; do
@@ -40,6 +41,7 @@ while [ $i -le $# ]; do
                 exit 1
             fi
             BRANCH_NUMBER="$next_arg"
+            MANUAL_NUMBER=true
             ;;
         --timestamp)
             USE_TIMESTAMP=true
@@ -79,78 +81,6 @@ if [ -z "$FEATURE_DESCRIPTION" ]; then
     echo "Error: Feature description cannot be empty or contain only whitespace" >&2
     exit 1
 fi
-
-# Function to get highest number from specs directory
-get_highest_from_specs() {
-    local specs_dir="$1"
-    local highest=0
-    
-    if [ -d "$specs_dir" ]; then
-        for dir in "$specs_dir"/*; do
-            [ -d "$dir" ] || continue
-            dirname=$(basename "$dir")
-            # Match sequential prefixes (>=3 digits), but skip timestamp dirs.
-            if echo "$dirname" | grep -Eq '^[0-9]{3,}-' && ! echo "$dirname" | grep -Eq '^[0-9]{8}-[0-9]{6}-'; then
-                number=$(echo "$dirname" | grep -Eo '^[0-9]+')
-                number=$((10#$number))
-                if [ "$number" -gt "$highest" ]; then
-                    highest=$number
-                fi
-            fi
-        done
-    fi
-    
-    echo "$highest"
-}
-
-# Function to get highest number from git branches
-get_highest_from_branches() {
-    local highest=0
-    
-    # Get all branches (local and remote)
-    branches=$(git branch -a 2>/dev/null || echo "")
-    
-    if [ -n "$branches" ]; then
-        while IFS= read -r branch; do
-            # Clean branch name: remove leading markers and remote prefixes
-            clean_branch=$(echo "$branch" | sed 's/^[* ]*//; s|^remotes/[^/]*/||')
-            
-            # Extract sequential feature number (>=3 digits), skip timestamp branches.
-            if echo "$clean_branch" | grep -Eq '^[0-9]{3,}-' && ! echo "$clean_branch" | grep -Eq '^[0-9]{8}-[0-9]{6}-'; then
-                number=$(echo "$clean_branch" | grep -Eo '^[0-9]+' || echo "0")
-                number=$((10#$number))
-                if [ "$number" -gt "$highest" ]; then
-                    highest=$number
-                fi
-            fi
-        done <<< "$branches"
-    fi
-    
-    echo "$highest"
-}
-
-# Function to check existing branches (local and remote) and return next available number
-check_existing_branches() {
-    local specs_dir="$1"
-
-    # Fetch all remotes to get latest branch info (suppress errors if no remotes)
-    git fetch --all --prune >/dev/null 2>&1 || true
-
-    # Get highest number from ALL branches (not just matching short name)
-    local highest_branch=$(get_highest_from_branches)
-
-    # Get highest number from ALL specs (not just matching short name)
-    local highest_spec=$(get_highest_from_specs "$specs_dir")
-
-    # Take the maximum of both
-    local max_num=$highest_branch
-    if [ "$highest_spec" -gt "$max_num" ]; then
-        max_num=$highest_spec
-    fi
-
-    # Return next number
-    echo $((max_num + 1))
-}
 
 # Function to clean and format a branch name
 clean_branch_name() {
@@ -247,11 +177,11 @@ else
     # Determine branch number
     if [ -z "$BRANCH_NUMBER" ]; then
         if [ "$HAS_GIT" = true ]; then
-            # Check existing branches on remotes
-            BRANCH_NUMBER=$(check_existing_branches "$SPECS_DIR")
+            # Specs directory is the primary source of truth.
+            # Branches are only used as fallback when specs are empty.
+            BRANCH_NUMBER=$(get_next_sequential_feature_number "$SPECS_DIR" "$REPO_ROOT")
         else
-            # Fall back to local directory check
-            HIGHEST=$(get_highest_from_specs "$SPECS_DIR")
+            HIGHEST=$(get_highest_sequential_index_from_specs_dir "$SPECS_DIR")
             BRANCH_NUMBER=$((HIGHEST + 1))
         fi
     fi
@@ -259,6 +189,18 @@ else
     # Force base-10 interpretation to prevent octal conversion (e.g., 010 → 8 in octal, but should be 10 in decimal)
     FEATURE_NUM=$(printf "%03d" "$((10#$BRANCH_NUMBER))")
     BRANCH_NAME="${FEATURE_NUM}-${BRANCH_SUFFIX}"
+
+    # Enforce unique numeric prefix in specs directory.
+    # If manual number collides, fail fast with clear guidance.
+    while compgen -G "$SPECS_DIR/${FEATURE_NUM}-*" > /dev/null; do
+        if [ "$MANUAL_NUMBER" = true ]; then
+            >&2 echo "Error: Feature number '$FEATURE_NUM' already exists in specs/. Use a different --number or omit --number."
+            exit 1
+        fi
+        BRANCH_NUMBER=$((10#$FEATURE_NUM + 1))
+        FEATURE_NUM=$(printf "%03d" "$BRANCH_NUMBER")
+        BRANCH_NAME="${FEATURE_NUM}-${BRANCH_SUFFIX}"
+    done
 fi
 
 # GitHub enforces a 244-byte limit on branch names

@@ -36,7 +36,7 @@ Given that feature description, do this:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Check for existing branches before creating new one**:
+2. **Create the feature branch using repo-wide sequential indexing**:
 
    a. First, fetch all remote branches to ensure we have the latest information:
 
@@ -44,25 +44,14 @@ Given that feature description, do this:
       git fetch --all --prune
       ```
 
-   b. Find the highest feature number across all sources for the short-name:
-      - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
-      - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-      - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
-
-   c. Determine the next available number:
-      - Extract all numbers from all three sources
-      - Find the highest number N
-      - Use N+1 for the new branch number
-
-   d. Run the script `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS"` with the calculated number and short-name:
-      - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-      - Bash example: `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS" --json --number 5 --short-name "user-auth" "Add user authentication"`
-      - PowerShell example: `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+   b. Run the script once and let it compute the next index from the current `specs/` directory:
+      - Bash example: `.specify/scripts/bash/create-new-feature.sh --json --short-name "user-auth" "$ARGUMENTS"`
+      - PowerShell example: `.specify/scripts/bash/create-new-feature.sh -Json -ShortName "user-auth" "$ARGUMENTS"`
 
    **IMPORTANT**:
-   - Check all three sources (remote branches, local branches, specs directories) to find the highest number
-   - Only match branches/directories with the exact short-name pattern
-   - If no existing branches/directories found with this short-name, start with number 1
+   - Sequential index selection is repository-wide and based on existing indexed folders in `specs/`
+   - Do not compute or pass `--number` in normal flows; allow the script to resolve the next index
+   - The script must prevent reuse of an existing numeric prefix
    - You must only ever run this script once per feature
    - The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
