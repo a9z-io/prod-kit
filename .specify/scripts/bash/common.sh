@@ -135,6 +135,91 @@ check_feature_branch() {
 
 get_feature_dir() { echo "$1/specs/$2"; }
 
+# Extract sequential numeric prefix from a feature-like name.
+# Returns empty string when the name does not use sequential numbering.
+# Examples:
+#   001-foo            -> 001
+#   20260319-143022-x  -> (empty; timestamp style)
+#   foo                -> (empty)
+extract_sequential_prefix() {
+    local name="$1"
+    if [[ "$name" =~ ^([0-9]{3,})- ]] && [[ ! "$name" =~ ^[0-9]{8}-[0-9]{6}- ]]; then
+        echo "${BASH_REMATCH[1]}"
+    else
+        echo ""
+    fi
+}
+
+# Get the highest sequential feature index from specs directory names.
+get_highest_sequential_index_from_specs_dir() {
+    local specs_dir="$1"
+    local highest=0
+    local dir_name prefix number
+
+    [[ -d "$specs_dir" ]] || { echo 0; return; }
+
+    for dir in "$specs_dir"/*; do
+        [[ -d "$dir" ]] || continue
+        dir_name="$(basename "$dir")"
+        prefix="$(extract_sequential_prefix "$dir_name")"
+        [[ -n "$prefix" ]] || continue
+        number=$((10#$prefix))
+        if (( number > highest )); then
+            highest=$number
+        fi
+    done
+
+    echo "$highest"
+}
+
+# Get the highest sequential feature index from git branches (local + remote).
+get_highest_sequential_index_from_branches() {
+    local repo_root="$1"
+    local highest=0
+    local branches clean_branch prefix number
+
+    if ! has_git; then
+        echo 0
+        return
+    fi
+
+    branches=$(git -C "$repo_root" branch -a 2>/dev/null || echo "")
+    [[ -n "$branches" ]] || { echo 0; return; }
+
+    while IFS= read -r branch; do
+        clean_branch=$(echo "$branch" | sed 's/^[* ]*//; s|^remotes/[^/]*/||')
+        prefix="$(extract_sequential_prefix "$clean_branch")"
+        [[ -n "$prefix" ]] || continue
+        number=$((10#$prefix))
+        if (( number > highest )); then
+            highest=$number
+        fi
+    done <<< "$branches"
+
+    echo "$highest"
+}
+
+# Resolve next sequential feature number.
+# Priority: specs directory state first, branches second (fallback/consistency).
+get_next_sequential_feature_number() {
+    local specs_dir="$1"
+    local repo_root="$2"
+    local highest_spec highest_branch
+
+    highest_spec=$(get_highest_sequential_index_from_specs_dir "$specs_dir")
+    if (( highest_spec > 0 )); then
+        echo $((highest_spec + 1))
+        return
+    fi
+
+    highest_branch=$(get_highest_sequential_index_from_branches "$repo_root")
+    if (( highest_branch > 0 )); then
+        echo $((highest_branch + 1))
+    else
+        echo 1
+    fi
+}
+
 # Find feature directory by numeric prefix instead of exact branch match
 # This allows multiple branches to work on the same spec (e.g., 004-fix-bug, 004-add-feature)
 find_feature_dir_by_prefix() {
@@ -172,7 +257,15 @@ find_feature_dir_by_prefix() {
         # Exactly one match - perfect!
         echo "$specs_dir/${matches[0]}"
     else
-        # Multiple matches - this shouldn't happen with proper naming convention
+        # Multiple matches: prefer exact branch directory when present.
+        local match
+        for match in "${matches[@]}"; do
+            if [[ "$match" == "$branch_name" ]]; then
+                echo "$specs_dir/$match"
+                return 0
+            fi
+        done
+        # Otherwise fail loudly to avoid ambiguous resolution.
         echo "ERROR: Multiple spec directories found with prefix '$prefix': ${matches[*]}" >&2
         echo "Please ensure only one spec directory exists per prefix." >&2
         return 1
