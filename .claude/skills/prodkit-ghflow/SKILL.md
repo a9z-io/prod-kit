@@ -24,9 +24,8 @@ If provided, use it to inform branch name and commit message suggestions.
 
 ## Overview
 
-Walk the user through the full GitHub workflow in six stages:
+Walk the user through the full GitHub workflow in five stages:
 
-0. Sync with main (fetch + optional rebase)
 1. Inspect repo state
 2. Create a feature branch (if needed)
 3. Stage changes and propose a commit message
@@ -34,107 +33,8 @@ Walk the user through the full GitHub workflow in six stages:
 5. Push and open a pull request on approval
 
 **Always pause for explicit user confirmation before any destructive or shared-state action**
-(rebasing, creating a branch, committing, pushing, opening a PR). Never skip a confirmation
-step even if the user has approved earlier steps.
-
----
-
-## Stage 0 — Sync with Main
-
-### 0a. Detect default branch
-
-Run:
-```bash
-git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null
-```
-
-Strip the `refs/remotes/origin/` prefix to get `DEFAULT_BRANCH` (e.g. `main`, `master`).
-
-If this command fails (remote HEAD not set or no remote):
-- Warn: "Cannot detect default branch — skipping sync step."
-- Skip to Stage 1.
-
-### 0b. Fetch remote
-
-Run:
-```bash
-git fetch origin <DEFAULT_BRANCH>
-```
-
-If fetch fails (non-zero exit):
-- Show the error output.
-- Ask:
-  ```
-  git fetch failed. How would you like to proceed?
-
-    A) Continue without syncing (branch may be behind <DEFAULT_BRANCH>)
-    B) Abort
-  ```
-- If **A**: skip to Stage 1.
-- If **B**: stop.
-
-### 0c. Skip if already on default branch
-
-Run:
-```bash
-git rev-parse --abbrev-ref HEAD
-```
-
-Set `CURRENT_BRANCH` from the output.
-
-If `CURRENT_BRANCH == DEFAULT_BRANCH`:
-- No rebase needed — skip to Stage 1 without any prompt.
-
-### 0d. Check divergence
-
-Run:
-```bash
-git rev-list --count HEAD..origin/<DEFAULT_BRANCH>
-```
-
-Set `COMMITS_BEHIND` from the output.
-
-If `COMMITS_BEHIND == 0`:
-- Branch is up-to-date — skip to Stage 1 without any prompt.
-
-### 0e. Prompt and rebase
-
-Present:
-```
-Your branch is <COMMITS_BEHIND> commit(s) behind origin/<DEFAULT_BRANCH>.
-Rebase on top of origin/<DEFAULT_BRANCH> before continuing?
-
-  A) Yes — rebase now
-  B) No  — continue without rebasing (branch may be behind <DEFAULT_BRANCH>)
-  C) Cancel
-```
-
-Wait for the user's response.
-
-- If **A**:
-  Run:
-  ```bash
-  git rebase origin/<DEFAULT_BRANCH>
-  ```
-  - On success: report `Rebased onto origin/<DEFAULT_BRANCH>.` and proceed to Stage 1.
-  - On failure (conflict or error):
-    Run:
-    ```bash
-    git rebase --abort
-    ```
-    Report:
-    ```
-    Rebase failed — branch restored to its original state.
-    Conflicts detected in: <list conflicting files from git output>
-    Resolve the conflicts manually, then re-run /prodkit.ghflow.
-    ```
-    Stop.
-
-- If **B**:
-  Warn: "Continuing with branch behind `<DEFAULT_BRANCH>`. Your PR may have merge conflicts."
-  Proceed to Stage 1.
-
-- If **C**: stop.
+(creating a branch, committing, pushing, opening a PR). Never skip a confirmation step even
+if the user has approved earlier steps.
 
 ---
 
@@ -391,7 +291,6 @@ On failure (e.g. `gh` not installed or not authenticated):
 | Not a git repo | Report: "No git repository found in the current directory." Stop. |
 | Merge conflict markers in diff | Warn user before staging: "Conflict markers detected — resolve conflicts before committing." Stop. |
 | Detached HEAD | Warn: "Repo is in detached HEAD state. Create a named branch first." Stop. |
-| Rebase conflict (Stage 0) | Run `git rebase --abort` to restore branch state. Report conflicting files. Instruct user to resolve manually and re-run. Stop. |
 
 ---
 
@@ -401,7 +300,6 @@ After the workflow completes (or is cancelled at any stage), print a status summ
 
 ```
 ── prodkit.ghflow summary ──────────────────────────
-Sync:    origin/<DEFAULT_BRANCH>   [rebased | skipped | failed]
 Branch:  <WORKING_BRANCH>          [created | existing]
 Staged:  <N files changed>
 Commit:  <hash> <subject>          [committed | skipped]
